@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Processing - Mail_Validator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid min-vh-100 bg-gradient">
+        <div class="row justify-content-center py-5">
+            <div class="col-md-8 col-lg-6">
+                <!-- Header -->
+                <div class="text-center mb-4">
+                    <div class="logo-container mb-3">
+                        <i class="fas fa-envelope-check text-primary display-4"></i>
+                    </div>
+                    <h1 class="h2 fw-bold text-dark mb-2">Mail_Validator</h1>
+                    <p class="text-muted">Email Validation in Progress</p>
+                </div>
+
+                <!-- Progress Card -->
+                <div class="card shadow-lg border-0 rounded-4 mb-4">
+                    <div class="card-body p-4">
+                        <!-- Status Display -->
+                        <div class="text-center mb-4">
+                            <div class="status-icon mb-3" id="status-icon">
+                                <i class="fas fa-spinner fa-spin text-primary display-5"></i>
+                            </div>
+                            <h4 class="fw-semibold mb-2" id="status-text">Initializing...</h4>
+                            <p class="text-muted mb-0" id="status-message">Starting email validation process</p>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="progress-container mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small fw-semibold">Progress</span>
+                                <span class="small text-muted" id="progress-text">0 / 0</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                     role="progressbar" id="progress-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Statistics -->
+                        <div class="row text-center" id="stats-container">
+                            <div class="col-4">
+                                <div class="stat-card bg-light rounded-3 p-3">
+                                    <div class="h4 fw-bold text-success mb-1" id="valid-count">0</div>
+                                    <small class="text-muted">Valid</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="stat-card bg-light rounded-3 p-3">
+                                    <div class="h4 fw-bold text-danger mb-1" id="invalid-count">0</div>
+                                    <small class="text-muted">Invalid</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="stat-card bg-light rounded-3 p-3">
+                                    <div class="h4 fw-bold text-primary mb-1" id="total-count">0</div>
+                                    <small class="text-muted">Total</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Card (Hidden initially) -->
+                <div class="card shadow-lg border-0 rounded-4 d-none" id="results-card">
+                    <div class="card-body p-4">
+                        <h5 class="fw-semibold mb-3">
+                            <i class="fas fa-chart-pie text-primary me-2"></i>Validation Results
+                        </h5>
+                        
+                        <!-- Results Summary -->
+                        <div class="results-summary mb-4" id="results-summary">
+                            <!-- Dynamic content will be inserted here -->
+                        </div>
+
+                        <!-- Download Section -->
+                        <div class="download-section text-center" id="download-section" style="display: none;">
+                            <div class="bg-success bg-opacity-10 rounded-3 p-4 mb-3">
+                                <i class="fas fa-file-excel text-success display-6 mb-2"></i>
+                                <h6 class="fw-semibold text-success mb-2">Results Ready!</h6>
+                                <p class="text-muted small mb-3">
+                                    Your validated email list is ready for download in Excel format.
+                                </p>
+                                <a href="{{ url_for('download_results') }}" class="btn btn-success btn-lg rounded-3">
+                                    <i class="fas fa-download me-2"></i>Download results.xlsx
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="text-center">
+                            <a href="{{ url_for('index') }}" class="btn btn-outline-primary rounded-3">
+                                <i class="fas fa-arrow-left me-2"></i>Validate More Emails
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error Card (Hidden initially) -->
+                <div class="card shadow-lg border-0 rounded-4 d-none" id="error-card">
+                    <div class="card-body p-4 text-center">
+                        <div class="text-danger mb-3">
+                            <i class="fas fa-exclamation-triangle display-4"></i>
+                        </div>
+                        <h5 class="fw-semibold text-danger mb-2">Validation Error</h5>
+                        <p class="text-muted" id="error-message">An error occurred during validation.</p>
+                        <a href="{{ url_for('index') }}" class="btn btn-primary rounded-3">
+                            <i class="fas fa-arrow-left me-2"></i>Try Again
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Developer Credit -->
+                <div class="text-center mt-4">
+                    <small class="text-muted">
+                        <i class="fas fa-code me-1"></i>
+                        This software was made by <strong>Tuhin</strong> | 
+                        Contact: <strong>01576440505</strong>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Progress tracking
+        let progressInterval;
+        
+        function updateProgress() {
+            fetch('/progress')
+                .then(response => response.json())
+                .then(data => {
+                    const statusIcon = document.getElementById('status-icon');
+                    const statusText = document.getElementById('status-text');
+                    const statusMessage = document.getElementById('status-message');
+                    const progressBar = document.getElementById('progress-bar');
+                    const progressText = document.getElementById('progress-text');
+                    
+                    // Update counts
+                    document.getElementById('valid-count').textContent = data.valid;
+                    document.getElementById('invalid-count').textContent = data.invalid;
+                    document.getElementById('total-count').textContent = data.total;
+                    
+                    // Update progress bar
+                    const percentage = data.total > 0 ? (data.processed / data.total) * 100 : 0;
+                    progressBar.style.width = percentage + '%';
+                    progressText.textContent = `${data.processed} / ${data.total}`;
+                    
+                    // Update status
+                    statusMessage.textContent = data.message;
+                    
+                    if (data.status === 'idle' || data.status === 'reading') {
+                        statusText.textContent = 'Preparing...';
+                        statusIcon.innerHTML = '<i class="fas fa-spinner fa-spin text-primary display-5"></i>';
+                    } else if (data.status === 'validating') {
+                        statusText.textContent = 'Validating Emails...';
+                        statusIcon.innerHTML = '<i class="fas fa-sync fa-spin text-warning display-5"></i>';
+                    } else if (data.status === 'completed') {
+                        statusText.textContent = 'Validation Completed!';
+                        statusIcon.innerHTML = '<i class="fas fa-check-circle text-success display-5"></i>';
+                        progressBar.classList.remove('progress-bar-animated');
+                        progressBar.classList.add('bg-success');
+                        
+                        // Show results
+                        showResults(data);
+                        clearInterval(progressInterval);
+                    } else if (data.status === 'error') {
+                        statusText.textContent = 'Validation Failed';
+                        statusIcon.innerHTML = '<i class="fas fa-exclamation-triangle text-danger display-5"></i>';
+                        
+                        // Show error
+                        showError(data.message);
+                        clearInterval(progressInterval);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching progress:', error);
+                });
+        }
+        
+        function showResults(data) {
+            const resultsCard = document.getElementById('results-card');
+            const downloadSection = document.getElementById('download-section');
+            
+            resultsCard.classList.remove('d-none');
+            
+            if (data.valid > 0) {
+                downloadSection.style.display = 'block';
+            }
+            
+            // Create results summary
+            const resultsSummary = document.getElementById('results-summary');
+            const categories = {};
+            
+            if (data.results) {
+                data.results.forEach(result => {
+                    const status = result.status;
+                    categories[status] = (categories[status] || 0) + 1;
+                });
+            }
+            
+            let summaryHTML = '<div class="row">';
+            Object.entries(categories).forEach(([status, count]) => {
+                const color = status === 'Valid' ? 'success' : 'danger';
+                const icon = status === 'Valid' ? 'check-circle' : 'times-circle';
+                
+                summaryHTML += `
+                    <div class="col-sm-6 mb-2">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-${icon} text-${color} me-2"></i>
+                            <span class="fw-semibold">${status}:</span>
+                            <span class="ms-auto text-${color} fw-bold">${count}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            summaryHTML += '</div>';
+            
+            resultsSummary.innerHTML = summaryHTML;
+        }
+        
+        function showError(message) {
+            const errorCard = document.getElementById('error-card');
+            const errorMessage = document.getElementById('error-message');
+            
+            errorMessage.textContent = message;
+            errorCard.classList.remove('d-none');
+        }
+        
+        // Start progress tracking
+        progressInterval = setInterval(updateProgress, 1000);
+        updateProgress(); // Initial call
+    </script>
+</body>
+</html>
